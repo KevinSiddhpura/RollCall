@@ -2,6 +2,9 @@
 
 A local-first mobile attendance management app for classrooms, built with Expo and React Native. All data lives on-device in SQLite — no backend, no account required.
 
+> **Project Disclaimer:**
+> This repository is a part of a **College PBL (Project-Based Learning) Activity**. As per the assignment requirements, this entire mobile application was **built completely with AI**, leveraging intelligent coding assistants for its architecture, UI/UX design, and implementation.
+
 ---
 
 ## Table of Contents
