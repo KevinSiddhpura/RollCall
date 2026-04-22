@@ -66,6 +66,12 @@ function statusLabel(s: string) {
   return '-';
 }
 
+function fmtShortDate(d: string) {
+  try { return format(parseISO(d), 'M/d'); } catch { return d; }
+}
+
+const SESSIONS_PER_CHUNK = 20;
+
 const DATE_FILTERS: { key: DateFilterKey; label: string }[] = [
   { key: 'all',        label: 'All Time'    },
   { key: 'this_month', label: 'This Month'  },
@@ -203,25 +209,57 @@ export default function ReportsScreen() {
     const statusColor: Record<string, string> = {
       P: '#16A34A', A: '#DC2626', L: '#D97706', E: '#7C3AED',
     };
-    const thead = `<tr><th>#</th><th>Name</th>${sessions.map(s => `<th>${s.date}</th>`).join('')}<th>Present</th><th>%</th></tr>`;
-    const tbody = students.map((st, i) => {
+
+    // Precompute per-student totals and per-session status once
+    const studentData = students.map(st => {
       let present = 0;
-      const tds = sessions.map(ses => {
+      const statusBySes: Record<number, { lbl: string; reason?: string }> = {};
+      for (const ses of sessions) {
         const rec = records.find(r => r.session_id === ses.id && r.student_id === st.id);
         const lbl = rec ? statusLabel(rec.status) : '-';
         if (rec && (rec.status === 'present' || rec.status === 'late')) present++;
-        const col = statusColor[lbl] ?? '#666';
-        const title = rec?.reason ? ` title="${rec.reason}"` : '';
-        return `<td style="color:${col};font-weight:700"${title}>${lbl}</td>`;
-      }).join('');
+        statusBySes[ses.id] = { lbl, reason: rec?.reason };
+      }
       const pct = sessions.length ? Math.round((present / sessions.length) * 100) : 0;
-      const pctCol = pct >= 75 ? '#16A34A' : pct >= 50 ? '#D97706' : '#DC2626';
-      return `<tr><td>${st.roll_no}</td><td>${st.first_name} ${st.last_name}</td>${tds}<td>${present}/${sessions.length}</td><td style="color:${pctCol};font-weight:700">${pct}%</td></tr>`;
-    }).join('');
+      return { st, present, pct, statusBySes };
+    });
+
+    // Split sessions into chunks so each fits on a landscape page
+    const chunks: typeof sessions[] = [];
+    for (let i = 0; i < Math.max(sessions.length, 1); i += SESSIONS_PER_CHUNK) {
+      chunks.push(sessions.slice(i, i + SESSIONS_PER_CHUNK));
+    }
+
+    const tables = chunks.map((chunk, chunkIdx) => {
+      const isLast = chunkIdx === chunks.length - 1;
+      const thead = `<tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;min-width:100px">Name</th>
+        ${chunk.map(s => `<th style="width:26px">${fmtShortDate(s.date)}</th>`).join('')}
+        ${isLast ? '<th style="width:38px">P/T</th><th style="width:32px">%</th>' : ''}
+      </tr>`;
+      const tbody = studentData.map(({ st, present, pct, statusBySes }) => {
+        const tds = chunk.map(ses => {
+          const { lbl, reason } = statusBySes[ses.id] ?? { lbl: '-' };
+          const col = statusColor[lbl] ?? '#9CA3AF';
+          const titleAttr = reason ? ` title="${reason}"` : '';
+          return `<td style="color:${col};font-weight:700"${titleAttr}>${lbl}</td>`;
+        }).join('');
+        const pctCol = pct >= 75 ? '#16A34A' : pct >= 50 ? '#D97706' : '#DC2626';
+        return `<tr>
+          <td>${st.roll_no}</td>
+          <td style="text-align:left">${st.first_name} ${st.last_name}</td>
+          ${tds}
+          ${isLast ? `<td>${present}/${sessions.length}</td><td style="color:${pctCol};font-weight:700">${pct}%</td>` : ''}
+        </tr>`;
+      }).join('');
+      return `<table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+    }).join('<div style="height:10px"></div>');
+
     return `
       ${sectionIndex > 0 ? '<div style="page-break-before:always"></div>' : ''}
       <h2>${classInfo.name} — Div ${classInfo.division}${classInfo.subject ? ` · ${classInfo.subject}` : ''}</h2>
-      <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+      ${tables}`;
   };
 
   // ─── Individual export ──────────────────────────────────────────────────
@@ -254,18 +292,21 @@ export default function ReportsScreen() {
         return;
       }
       const html = `<html><head><style>
-        body{font-family:Helvetica,sans-serif;padding:24px;color:#0F172A}
-        h2{color:#1E3A8A;margin:20px 0 8px;font-size:16px}
-        table{width:100%;border-collapse:collapse;font-size:11px}
-        th,td{border:1px solid #E2E8F0;padding:6px 8px;text-align:center}
-        th{background:#EFF6FF;color:#1D4ED8;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+        @page{size:A4 landscape;margin:10mm 12mm}
+        body{font-family:Helvetica,sans-serif;color:#0F172A}
+        h1{color:#1E3A8A;margin:0 0 4px;font-size:18px}
+        h2{color:#1E3A8A;margin:14px 0 5px;font-size:13px}
+        table{width:100%;border-collapse:collapse;font-size:8px;table-layout:auto;margin-bottom:2px}
+        th,td{border:1px solid #E2E8F0;padding:3px 4px;text-align:center;white-space:nowrap}
+        th{background:#EFF6FF;color:#1D4ED8;font-weight:700;text-transform:uppercase;letter-spacing:.3px;font-size:7px}
+        th:nth-child(2),td:nth-child(2){text-align:left}
         tr:nth-child(even){background:#F8FAFC}
       </style></head><body>
-        <h1 style="color:#1E3A8A;margin:0 0 4px;font-size:20px">Attendance Report</h1>
+        <h1>Attendance Report</h1>
         ${buildPDFSection(data, 0)}
       </body></html>`;
       const pdfName = `${data.classInfo.name} ${data.classInfo.division} - Attendance - ${format(new Date(), 'MMM d yyyy')}.pdf`;
-      const { uri: rawUri } = await Print.printToFileAsync({ html });
+      const { uri: rawUri } = await Print.printToFileAsync({ html, width: 842, height: 595 });
       const pdfUri = `${LegacyFS.cacheDirectory}${pdfName}`;
       await LegacyFS.copyAsync({ from: rawUri, to: pdfUri });
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(pdfUri, { mimeType: 'application/pdf' });
@@ -323,18 +364,20 @@ export default function ReportsScreen() {
       }
       const sections = validData.map((d, i) => buildPDFSection(d, i)).join('');
       const html = `<html><head><style>
-        body{font-family:Helvetica,sans-serif;padding:24px;color:#0F172A}
-        h1{color:#1E3A8A;margin:0 0 20px;font-size:20px}
-        h2{color:#1E3A8A;margin:20px 0 8px;font-size:16px}
-        table{width:100%;border-collapse:collapse;font-size:10px}
-        th,td{border:1px solid #E2E8F0;padding:5px 7px;text-align:center}
-        th{background:#EFF6FF;color:#1D4ED8;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+        @page{size:A4 landscape;margin:10mm 12mm}
+        body{font-family:Helvetica,sans-serif;color:#0F172A}
+        h1{color:#1E3A8A;margin:0 0 4px;font-size:18px}
+        h2{color:#1E3A8A;margin:14px 0 5px;font-size:13px}
+        table{width:100%;border-collapse:collapse;font-size:8px;table-layout:auto;margin-bottom:2px}
+        th,td{border:1px solid #E2E8F0;padding:3px 4px;text-align:center;white-space:nowrap}
+        th{background:#EFF6FF;color:#1D4ED8;font-weight:700;text-transform:uppercase;letter-spacing:.3px;font-size:7px}
+        th:nth-child(2),td:nth-child(2){text-align:left}
         tr:nth-child(even){background:#F8FAFC}
       </style></head><body>
         <h1>Attendance Report</h1>${sections}
       </body></html>`;
       const pdfName = `Combined Attendance - ${format(new Date(), 'MMM d yyyy')}.pdf`;
-      const { uri: rawUri } = await Print.printToFileAsync({ html });
+      const { uri: rawUri } = await Print.printToFileAsync({ html, width: 842, height: 595 });
       const pdfUri = `${LegacyFS.cacheDirectory}${pdfName}`;
       await LegacyFS.copyAsync({ from: rawUri, to: pdfUri });
       if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(pdfUri, { mimeType: 'application/pdf' });

@@ -179,45 +179,146 @@ export default function ClassDetailsScreen() {
           complete: async (parsed) => {
             if (!parsed.data?.length) { Alert.alert('Warning', 'No data found in CSV.'); return; }
             try {
-              const existing = await db.getAllAsync<{ index_no: string }>(
-                'SELECT index_no FROM students WHERE class_id = ? AND index_no IS NOT NULL AND index_no != ""',
-                [classId]
-              );
-              let maxIdx = existing.reduce((m, r) => Math.max(m, parseInt(r.index_no, 10) || 0), 0);
+              const headers: string[] = parsed.meta.fields ?? [];
+              const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+              const dateColumns = headers.filter(h => datePattern.test(h));
+              const isReportCSV = headers.includes('Roll No') && headers.includes('Name') && dateColumns.length > 0;
 
-              let imported = 0;
-              let skipped = 0;
-              for (const row of parsed.data as any[]) {
-                const firstName = (row.first_name || row.firstName || row.FirstName || '').trim();
-                const lastName = (row.last_name || row.lastName || row.LastName || '').trim();
-                if (!firstName || !lastName) continue;
+              if (isReportCSV) {
+                // ── Full attendance report import ──────────────────────────────
+                // Resolve/create a session for every date column
+                const sessionIds: Record<string, number> = {};
+                for (const date of dateColumns) {
+                  const existing = await db.getFirstAsync<{ id: number }>(
+                    'SELECT id FROM attendance_sessions WHERE class_id = ? AND date = ?',
+                    [classId, date]
+                  );
+                  if (existing) {
+                    sessionIds[date] = existing.id;
+                  } else {
+                    const res = await db.runAsync(
+                      'INSERT INTO attendance_sessions (class_id, date, time) VALUES (?, ?, ?)',
+                      [classId, date, '00:00']
+                    );
+                    sessionIds[date] = res.lastInsertRowId;
+                  }
+                }
 
-                const middleName = (row.middle_name || row.middleName || '').trim();
-                const rollNo = (row.roll_no || row.rollNo || row.RollNo || '-').trim().toUpperCase();
-                const enrollmentNo = (row.enrollment_no || row.enrollmentNo || '-').trim();
-                let indexNo = (row.index_no || row.indexNo || '').trim();
-                if (!indexNo) { maxIdx++; indexNo = String(maxIdx); }
-                const notes = (row.reason || row.notes || '').trim();
-
-                // Duplicate check
-                const dup = await db.getFirstAsync<{ count: number }>(
-                  `SELECT COUNT(*) as count FROM students WHERE class_id = ?
-                   AND ((roll_no = ? AND roll_no != '-') OR (enrollment_no = ? AND enrollment_no != '-'))`,
-                  [classId, rollNo, enrollmentNo]
+                // Get current max index_no for auto-assigning to new students
+                const idxRows = await db.getAllAsync<{ index_no: string }>(
+                  'SELECT index_no FROM students WHERE class_id = ? AND index_no IS NOT NULL AND index_no != ""',
+                  [classId]
                 );
-                if (dup && dup.count > 0) { skipped++; continue; }
+                let maxIdx = idxRows.reduce((m, r) => Math.max(m, parseInt(r.index_no, 10) || 0), 0);
 
-                await db.runAsync(
-                  `INSERT INTO students (class_id, first_name, middle_name, last_name, roll_no, enrollment_no, index_no, notes)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                  [classId, firstName, middleName, lastName, rollNo, enrollmentNo, indexNo, notes]
+                let studentsAdded = 0;
+                let studentsMatched = 0;
+                let recordsAdded = 0;
+
+                for (const row of parsed.data as any[]) {
+                  const rollNo = (row['Roll No'] || '').trim().toUpperCase();
+                  const fullName = (row['Name'] || '').trim();
+                  if (!fullName && !rollNo) continue;
+
+                  const nameParts = fullName.split(/\s+/);
+                  const firstName = nameParts[0] ?? '';
+                  const lastName = nameParts.slice(1).join(' ');
+
+                  // Match existing student: first by roll_no, then by exact name
+                  let studentId: number | null = null;
+                  if (rollNo && rollNo !== '-') {
+                    const byRoll = await db.getFirstAsync<{ id: number }>(
+                      'SELECT id FROM students WHERE class_id = ? AND roll_no = ?',
+                      [classId, rollNo]
+                    );
+                    if (byRoll) { studentId = byRoll.id; studentsMatched++; }
+                  }
+                  if (!studentId && firstName) {
+                    const byName = await db.getFirstAsync<{ id: number }>(
+                      'SELECT id FROM students WHERE class_id = ? AND first_name = ? AND last_name = ?',
+                      [classId, firstName, lastName]
+                    );
+                    if (byName) { studentId = byName.id; studentsMatched++; }
+                  }
+
+                  // Create student if not found
+                  if (!studentId) {
+                    if (!firstName) continue;
+                    maxIdx++;
+                    const res = await db.runAsync(
+                      `INSERT INTO students (class_id, first_name, last_name, roll_no, middle_name, enrollment_no, index_no, notes)
+                       VALUES (?, ?, ?, ?, '', '-', ?, '')`,
+                      [classId, firstName, lastName, rollNo || '-', String(maxIdx)]
+                    );
+                    studentId = res.lastInsertRowId;
+                    studentsAdded++;
+                  }
+
+                  // Insert attendance records (IGNORE duplicates via unique constraint)
+                  for (const date of dateColumns) {
+                    const cell = String(row[date] ?? '').trim();
+                    if (!cell || cell === '-') continue;
+                    const letter = cell[0].toUpperCase();
+                    const statusMap: Record<string, string> = { P: 'present', A: 'absent', L: 'late', E: 'excused' };
+                    const status = statusMap[letter];
+                    if (!status) continue;
+                    const reasonMatch = cell.match(/\(([^)]+)\)/);
+                    const reason = reasonMatch ? reasonMatch[1].trim() : '';
+                    await db.runAsync(
+                      `INSERT OR IGNORE INTO attendance_records (session_id, student_id, status, reason) VALUES (?, ?, ?, ?)`,
+                      [sessionIds[date], studentId, status, reason]
+                    );
+                    recordsAdded++;
+                  }
+                }
+
+                const parts: string[] = [];
+                if (studentsAdded > 0) parts.push(`${studentsAdded} student${studentsAdded !== 1 ? 's' : ''} added`);
+                if (studentsMatched > 0) parts.push(`${studentsMatched} matched`);
+                parts.push(`${recordsAdded} attendance record${recordsAdded !== 1 ? 's' : ''} imported across ${dateColumns.length} session${dateColumns.length !== 1 ? 's' : ''}`);
+                Alert.alert('Import Complete', parts.join(', ') + '.');
+                loadData();
+              } else {
+                // ── Roster-only import ─────────────────────────────────────────
+                const existing = await db.getAllAsync<{ index_no: string }>(
+                  'SELECT index_no FROM students WHERE class_id = ? AND index_no IS NOT NULL AND index_no != ""',
+                  [classId]
                 );
-                imported++;
+                let maxIdx = existing.reduce((m, r) => Math.max(m, parseInt(r.index_no, 10) || 0), 0);
+
+                let imported = 0;
+                let skipped = 0;
+                for (const row of parsed.data as any[]) {
+                  const firstName = (row.first_name || row.firstName || row.FirstName || '').trim();
+                  const lastName = (row.last_name || row.lastName || row.LastName || '').trim();
+                  if (!firstName || !lastName) continue;
+
+                  const middleName = (row.middle_name || row.middleName || '').trim();
+                  const rollNo = (row.roll_no || row.rollNo || row.RollNo || '-').trim().toUpperCase();
+                  const enrollmentNo = (row.enrollment_no || row.enrollmentNo || '-').trim();
+                  let indexNo = (row.index_no || row.indexNo || '').trim();
+                  if (!indexNo) { maxIdx++; indexNo = String(maxIdx); }
+                  const notes = (row.reason || row.notes || '').trim();
+
+                  const dup = await db.getFirstAsync<{ count: number }>(
+                    `SELECT COUNT(*) as count FROM students WHERE class_id = ?
+                     AND ((roll_no = ? AND roll_no != '-') OR (enrollment_no = ? AND enrollment_no != '-'))`,
+                    [classId, rollNo, enrollmentNo]
+                  );
+                  if (dup && dup.count > 0) { skipped++; continue; }
+
+                  await db.runAsync(
+                    `INSERT INTO students (class_id, first_name, middle_name, last_name, roll_no, enrollment_no, index_no, notes)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [classId, firstName, middleName, lastName, rollNo, enrollmentNo, indexNo, notes]
+                  );
+                  imported++;
+                }
+                Alert.alert('Import Complete', `${imported} student${imported !== 1 ? 's' : ''} imported${skipped > 0 ? `, ${skipped} skipped (duplicates)` : ''}.`);
+                loadData();
               }
-              Alert.alert('Import Complete', `${imported} student${imported !== 1 ? 's' : ''} imported${skipped > 0 ? `, ${skipped} skipped (duplicates)` : ''}.`);
-              loadData();
             } catch (err) {
-              Alert.alert('Error', 'Failed to insert students.');
+              Alert.alert('Error', 'Failed to import data.');
             }
           },
           error: (err: any) => Alert.alert('Parse Error', err.message),
@@ -267,7 +368,6 @@ export default function ClassDetailsScreen() {
           <td>${s.roll_no && s.roll_no !== '-' ? s.roll_no : '–'}</td>
           <td>${s.enrollment_no && s.enrollment_no !== '-' ? s.enrollment_no : '–'}</td>
           <td style="color:${pctCol};font-weight:700">${pct !== null ? `${pct}%` : '–'}</td>
-          <td style="text-align:left;color:#64748B">${s.notes || ''}</td>
         </tr>`;
       }).join('');
       const html = `<html><head><style>
@@ -284,7 +384,7 @@ export default function ClassDetailsScreen() {
         <h3>${classInfo.name} — Div ${classInfo.division}${classInfo.subject ? ` · ${classInfo.subject}` : ''}</h3>
         <p>Exported ${exportDate} · ${subset.length} student${subset.length !== 1 ? 's' : ''}</p>
         <table><thead>
-          <tr><th>#</th><th>Name</th><th>Roll No</th><th>Enrollment No</th><th>Attendance</th><th>Notes</th></tr>
+          <tr><th>#</th><th>Name</th><th>Roll No</th><th>Enrollment No</th><th>Attendance</th></tr>
         </thead><tbody>${rows}</tbody></table>
       </body></html>`;
       const pdfFilename = `${classInfo.name} ${classInfo.division} - Roster - ${format(new Date(), 'MMM d yyyy')}.pdf`;
@@ -750,7 +850,7 @@ export default function ClassDetailsScreen() {
             <View style={styles.csvSection}>
               <Text style={styles.csvSectionTitle}>Import</Text>
               <Text style={styles.modalDesc}>
-                Your CSV file must have a header row. Column names are flexible — the following formats are accepted:
+                Import a <Text style={{ fontWeight: '700', color: theme.colors.text }}>full report CSV</Text> from the Reports screen to automatically restore students, sessions, and all attendance records. Or import a <Text style={{ fontWeight: '700', color: theme.colors.text }}>roster CSV</Text> to add students only, using the column names below.
               </Text>
 
               <View style={styles.fieldList}>
