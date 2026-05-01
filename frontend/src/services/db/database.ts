@@ -90,6 +90,15 @@ export async function execute(sql: string, params: any[] = []) {
   return result;
 }
 
+/** Migrate guest data to a real user ID on sign up / sign in */
+export async function migrateGuestData(newUserId: string) {
+  const tables = ['groups', 'field_defs', 'members', 'sessions', 'records'];
+  for (const table of tables) {
+    await db.runAsync(`UPDATE ${table} SET user_id = ? WHERE user_id = 'guest' OR user_id = '' OR user_id IS NULL`, [newUserId]);
+  }
+  notifyChange();
+}
+
 /** Clear all data from all tables */
 export async function clearAllData() {
   await db.execAsync('DELETE FROM records;');

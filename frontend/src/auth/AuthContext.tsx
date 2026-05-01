@@ -3,8 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 import { BACKEND_URL } from '../config';
 import type { SyncStatus } from '../services/syncService';
-import { setDbUserId } from '../services/db/database';
-import { clearAllData } from '../services/db/database';
+import { setDbUserId, clearAllData, migrateGuestData } from '../services/db/database';
 
 const SESSION_KEY = 'rollcall_session';
 
@@ -133,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token: backendResult.token,
     };
     await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+    await migrateGuestData(backendResult.userId);
     setDbUserId(backendResult.userId);
     setUser({ email: trimmedEmail, userId: backendResult.userId });
     setToken(backendResult.token);
@@ -154,6 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token: backendResult.token,
       };
       await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+      await migrateGuestData(backendResult.userId);
       setDbUserId(backendResult.userId);
       setUser({ email: trimmedEmail, userId: backendResult.userId });
       setToken(backendResult.token);

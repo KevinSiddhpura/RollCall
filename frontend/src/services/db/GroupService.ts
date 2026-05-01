@@ -8,11 +8,11 @@ export const GroupService = {
 
   async getAllRoot(): Promise<GroupDTO[]> {
     const sql = `
-      SELECT g.*, 
-        (SELECT COUNT(*) FROM members m WHERE m.group_id = g.id) as memberCount,
-        (SELECT COUNT(*) FROM groups child WHERE child.parent_id = g.id) as childCount,
-        (SELECT COUNT(*) FROM sessions s WHERE s.group_id = g.id) as sessionCount
-      FROM groups g 
+      SELECT g.*,
+        (SELECT COUNT(*) FROM members m WHERE m.group_id = g.id AND m.user_id = g.user_id) as memberCount,
+        (SELECT COUNT(*) FROM groups child WHERE child.parent_id = g.id AND child.user_id = g.user_id) as childCount,
+        (SELECT COUNT(*) FROM sessions s WHERE s.group_id = g.id AND s.user_id = g.user_id) as sessionCount
+      FROM groups g
       WHERE (g.parent_id = "" OR g.parent_id IS NULL) AND g.user_id = ?
       ORDER BY g.display_order ASC
     `;
@@ -21,11 +21,11 @@ export const GroupService = {
 
   async getChildren(parentId: string): Promise<GroupDTO[]> {
     const sql = `
-      SELECT g.*, 
-        (SELECT COUNT(*) FROM members m WHERE m.group_id = g.id) as memberCount,
-        (SELECT COUNT(*) FROM groups child WHERE child.parent_id = g.id) as childCount,
-        (SELECT COUNT(*) FROM sessions s WHERE s.group_id = g.id) as sessionCount
-      FROM groups g 
+      SELECT g.*,
+        (SELECT COUNT(*) FROM members m WHERE m.group_id = g.id AND m.user_id = g.user_id) as memberCount,
+        (SELECT COUNT(*) FROM groups child WHERE child.parent_id = g.id AND child.user_id = g.user_id) as childCount,
+        (SELECT COUNT(*) FROM sessions s WHERE s.group_id = g.id AND s.user_id = g.user_id) as sessionCount
+      FROM groups g
       WHERE g.parent_id = ? AND g.user_id = ?
       ORDER BY g.display_order ASC
     `;
@@ -50,8 +50,21 @@ export const GroupService = {
   },
 
   async delete(id: string) {
-    // Cascading delete is handled by SQLite foreign keys!
-    return await execute('DELETE FROM groups WHERE id = ? AND user_id = ?', [id, getDbUserId()]);
+    // Recursively collect all descendant group IDs for cascade delete
+    const collectDescendants = async (parentId: string): Promise<string[]> => {
+      const children = await queryAll<any>('SELECT id FROM groups WHERE parent_id = ? AND user_id = ?', [parentId, getDbUserId()]);
+      const ids: string[] = [];
+      for (const child of children) {
+        ids.push(child.id);
+        ids.push(...(await collectDescendants(child.id)));
+      }
+      return ids;
+    };
+    const allIds = [id, ...(await collectDescendants(id))];
+    for (const gid of allIds) {
+      await execute('DELETE FROM groups WHERE id = ? AND user_id = ?', [gid, getDbUserId()]);
+    }
+    return;
   },
 
   async rename(id: string, newName: string) {

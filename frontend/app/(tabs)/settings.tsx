@@ -416,40 +416,38 @@ export default function SettingsScreen() {
       )}
 
       <Modal visible={upgradeModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-          <TouchableOpacity style={styles.modalBgEnd} activeOpacity={1} onPress={() => setUpgradeModal(false)}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Back Up Your Data</Text>
-              <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-              <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
-              {upgradeTab === 'signup' && <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry />}
-              <TouchableOpacity style={styles.saveBtn} onPress={handleUpgrade} disabled={upgradeLoading}>
-                {upgradeLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{upgradeTab === 'signup' ? 'Create Account' : 'Sign In'}</Text>}
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setUpgradeModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Back Up Your Data</Text>
+            <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+            {upgradeTab === 'signup' && <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPw} onChangeText={setConfirmPw} secureTextEntry />}
+            <TouchableOpacity style={styles.saveBtn} onPress={handleUpgrade} disabled={upgradeLoading}>
+              {upgradeLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.saveBtnText}>{upgradeTab === 'signup' ? 'Create Account' : 'Sign In'}</Text>}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
       <Modal visible={changePwModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-          <TouchableOpacity style={styles.modalBgEnd} activeOpacity={1} onPress={() => setChangePwModal(false)}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Change Password</Text>
-              {cpError ? <Text style={styles.cpError}>{cpError}</Text> : null}
-              {[{ l: 'Current Password', v: cpCurrent, s: setCpCurrent }, { l: 'New Password', v: cpNew, s: setCpNew }, { l: 'Confirm New Password', v: cpConfirm, s: setCpConfirm }].map(({ l, v, s }) => (
-                <View key={l} style={{ marginBottom: 10 }}>
-                  <Text style={styles.cpLabel}>{l}</Text>
-                  <TextInput style={styles.input} value={v} onChangeText={s} secureTextEntry placeholder="••••••" placeholderTextColor={theme.colors.textPlaceholder} />
-                </View>
-              ))}
-              <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.7 }]} onPress={handleChangePassword} disabled={cpLoading}>
-                {cpLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior="padding">
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setChangePwModal(false)} />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Change Password</Text>
+            {cpError ? <Text style={styles.cpError}>{cpError}</Text> : null}
+            {[{ l: 'Current Password', v: cpCurrent, s: setCpCurrent }, { l: 'New Password', v: cpNew, s: setCpNew }, { l: 'Confirm New Password', v: cpConfirm, s: setCpConfirm }].map(({ l, v, s }) => (
+              <View key={l} style={{ marginBottom: 10 }}>
+                <Text style={styles.cpLabel}>{l}</Text>
+                <TextInput style={styles.input} value={v} onChangeText={s} secureTextEntry placeholder="••••••" placeholderTextColor={theme.colors.textPlaceholder} />
+              </View>
+            ))}
+            <TouchableOpacity style={[styles.saveBtn, cpLoading && { opacity: 0.7 }]} onPress={handleChangePassword} disabled={cpLoading}>
+              {cpLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnText}>Update Password</Text>}
+            </TouchableOpacity>
+          </View>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -550,7 +548,7 @@ const styles = StyleSheet.create({
 
   // Modals
   modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
-  modalBgEnd: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: theme.colors.surface, padding: 24, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 36 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text, marginBottom: 20 },

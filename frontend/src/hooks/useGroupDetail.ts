@@ -4,7 +4,7 @@ import { FieldService } from '../services/db/FieldService';
 import { MemberService } from '../services/db/MemberService';
 import { SessionService } from '../services/db/SessionService';
 import { GroupDTO, FieldDefDTO, MemberDTO, AttendanceSessionDTO } from '../services/db/types';
-import { subscribeToDB, queryAll } from '../services/db/database';
+import { subscribeToDB, queryAll, getDbUserId } from '../services/db/database';
 
 export function useGroupDetail(id: string) {
   const [group, setGroup] = useState<GroupDTO | null>(null);
@@ -44,9 +44,10 @@ export function useGroupDetail(id: string) {
       // Compute per-member attendance percentages
       if (s.length > 0 && m.length > 0) {
         const placeholders = s.map(() => '?').join(',');
+        const sidParams = s.map(ses => ses.id);
         const records = await queryAll<{ session_id: string; member_id: string; status: string }>(
-          `SELECT session_id, member_id, status FROM records WHERE session_id IN (${placeholders})`,
-          s.map(ses => ses.id)
+          `SELECT session_id, member_id, status FROM records WHERE session_id IN (${placeholders}) AND user_id = ?`,
+          [...sidParams, getDbUserId()]
         );
         // Index records by session_id|member_id for O(1) lookups
         const recordIndex = new Map<string, string>();

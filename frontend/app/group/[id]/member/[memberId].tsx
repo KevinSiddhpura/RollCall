@@ -128,7 +128,8 @@ export default function MemberDetailScreen() {
 
       <ExportModal visible={!!exportPrompt} defaultName={exportPrompt?.def ?? ''} onExport={(n) => { exportPrompt?.cb(n); setExportPrompt(null); }} onClose={() => setExportPrompt(null)} />
       <Modal visible={exportModal} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setExportModal(false)}>
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setExportModal(false)} />
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Export History</Text>
@@ -140,7 +141,7 @@ export default function MemberDetailScreen() {
               <FileText size={20} color={theme.colors.primary} /><Text style={styles.modalBtnText}>Export as PDF</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
     </View>
   );
@@ -183,7 +184,7 @@ const styles = StyleSheet.create({
   logBadge: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   logBadgeText: { fontSize: 14, fontWeight: '800' },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text, marginBottom: 4 },

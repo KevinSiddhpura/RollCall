@@ -267,17 +267,20 @@ export default function GroupDetailScreen() {
       )}
 
       <Modal visible={editModalVisible} transparent animationType="slide">
-        <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setEditModalVisible(false)}>
-          <KeyboardAvoidingView behavior="padding" style={{ justifyContent: 'flex-end', flex: 1 }}>
-            <View style={styles.modalSheet}>
-              <View style={styles.modalHandle} />
-              <Text style={styles.modalTitle}>Edit Group Name</Text>
-              <TextInput style={styles.modalInput} value={editName} onChangeText={setEditName} placeholder="Group Name" autoFocus />
-              <TouchableOpacity style={styles.modalSave} onPress={saveEdit}><Check size={18} color="#fff" /><Text style={{ fontWeight: '700', color: '#fff', fontSize: 16 }}>Save Changes</Text></TouchableOpacity>
-              <TouchableOpacity style={{ paddingVertical: 14, alignItems: 'center' }} onPress={() => setEditModalVisible(false)}><Text style={{ fontWeight: '600', color: theme.colors.textSecondary }}>Cancel</Text></TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </TouchableOpacity>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setEditModalVisible(false)}
+          />
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Edit Group Name</Text>
+            <TextInput style={styles.modalInput} value={editName} onChangeText={setEditName} placeholder="Group Name" autoFocus />
+            <TouchableOpacity style={styles.modalSave} onPress={saveEdit}><Check size={18} color="#fff" /><Text style={{ fontWeight: '700', color: '#fff', fontSize: 16 }}>Save Changes</Text></TouchableOpacity>
+            <TouchableOpacity style={{ paddingVertical: 14, alignItems: 'center' }} onPress={() => setEditModalVisible(false)}><Text style={{ fontWeight: '600', color: theme.colors.textSecondary }}>Cancel</Text></TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <Modal transparent visible={!!deletingLabel}><View style={styles.deletingBg}><View style={styles.deletingCard}><ActivityIndicator color={theme.colors.primary} /><Text style={{ fontWeight: '700', color: theme.colors.text }}>{deletingLabel}</Text></View></View></Modal>
@@ -354,7 +357,7 @@ const styles = StyleSheet.create({
   bulkBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: theme.borderRadius.md, paddingVertical: 12 },
   bulkBtnText: { fontSize: 13, fontWeight: '700' },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: theme.spacing.xl, paddingTop: 8, paddingBottom: 36 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 20 },
   modalTitle: { fontSize: 18, fontWeight: '800', color: theme.colors.text, marginBottom: 16 },

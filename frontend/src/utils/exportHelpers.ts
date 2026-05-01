@@ -8,7 +8,7 @@ import { pctColor } from './colorHelpers';
 import { GroupService } from '../services/db/GroupService';
 import { FieldService } from '../services/db/FieldService';
 import { MemberService } from '../services/db/MemberService';
-import { queryAll } from '../services/db/database';
+import { queryAll, getDbUserId } from '../services/db/database';
 
 function statusLabel(s: string) {
   if (s === 'present') return 'P';
@@ -56,8 +56,9 @@ export async function fetchGroupExportData(
   const uniqueField = fields.find(f => f.is_unique);
   const members = await MemberService.getByGroup(groupId);
 
-  let sql = 'SELECT * FROM sessions WHERE group_id = ?';
-  const params: any[] = [groupId];
+  const userId = getDbUserId();
+  let sql = 'SELECT * FROM sessions WHERE group_id = ? AND user_id = ?';
+  const params: any[] = [groupId, userId];
   if (fromDate) { sql += ' AND date >= ?'; params.push(fromDate); }
   if (toDate) { sql += ' AND date <= ?'; params.push(toDate); }
   sql += ' ORDER BY date ASC';
@@ -68,8 +69,8 @@ export async function fetchGroupExportData(
   if (sessions.length > 0) {
     const placeholders = sessions.map(() => '?').join(',');
     const recs = await queryAll<AttendanceRecordDTO>(
-      `SELECT * FROM records WHERE session_id IN (${placeholders})`,
-      sessions.map(s => s.id)
+      `SELECT * FROM records WHERE session_id IN (${placeholders}) AND user_id = ?`,
+      [...sessions.map(s => s.id), userId]
     );
     records.push(...recs);
   }

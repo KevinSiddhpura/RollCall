@@ -20,7 +20,8 @@ function makeToken(user) {
 
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters.' });
     if (!email.includes('@')) return res.status(400).json({ error: 'Invalid email format.' });
@@ -39,7 +40,8 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required.' });
 
     const user = await User.findOne({ email });

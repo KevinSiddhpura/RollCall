@@ -132,8 +132,8 @@ export default function FieldsScreen() {
 
       {/* Add Field Modal */}
       <Modal visible={addModal} transparent animationType="slide">
-        <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setAddModal(false)}>
+        <KeyboardAvoidingView behavior="padding" style={styles.modalOverlay}>
+          <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={() => setAddModal(false)} />
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
               <View style={styles.modalHeader}>
@@ -164,7 +164,6 @@ export default function FieldsScreen() {
                 <Text style={styles.saveBtnText}>Create Field</Text>
               </TouchableOpacity>
             </View>
-          </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
     </View>
@@ -193,7 +192,7 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', right: 24, width: 60, height: 60, borderRadius: 30, backgroundColor: theme.colors.primary, ...theme.shadows.primary },
   fabTouch: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
-  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.4)' },
   modalSheet: { backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40 },
   modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: theme.colors.border, alignSelf: 'center', marginBottom: 20 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

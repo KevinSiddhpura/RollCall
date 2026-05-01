@@ -118,7 +118,6 @@ export default function DashboardScreen() {
         {/* Header */}
         <LinearGradient colors={[theme.colors.primaryDeep, theme.colors.primary]} style={styles.header}>
           <Animated.View entering={FadeInDown.duration(400).springify()} style={styles.headerContent}>
-            <Text style={styles.greeting}>Dashboard</Text>
             <View style={styles.headerTitleRow}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.greeting}>Dashboard</Text>

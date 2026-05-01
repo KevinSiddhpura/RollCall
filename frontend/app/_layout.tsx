@@ -61,7 +61,7 @@ function SyncManager() {
     (async () => {
       try {
         await pushToMongo(token, user.userId);
-        await pullFromMongo(token);
+        await pullFromMongo(token, user.userId);
         if (active) setSyncStatus('synced');
       } catch (e) {
         console.error('Sync failed:', e);

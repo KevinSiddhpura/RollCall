@@ -86,12 +86,12 @@ export const SessionService = {
     const userId = getDbUserId();
     if (sessionData.date) {
       await execute(
-        'UPDATE sessions SET date = ?, notes = ? WHERE id = ?',
-        [sessionData.date, sessionData.notes || '', sessionId]
+        'UPDATE sessions SET date = ?, notes = ? WHERE id = ? AND user_id = ?',
+        [sessionData.date, sessionData.notes || '', sessionId, userId]
       );
     }
 
-    await execute('DELETE FROM records WHERE session_id = ?', [sessionId]);
+    await execute('DELETE FROM records WHERE session_id = ? AND user_id = ?', [sessionId, userId]);
     for (const r of records) {
       await execute(
         'INSERT INTO records (id, session_id, member_id, status, reason, user_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -109,9 +109,9 @@ export const SessionService = {
       SELECT r.*, s.date, s.time, s.notes as sessionNotes
       FROM records r
       JOIN sessions s ON r.session_id = s.id
-      WHERE r.member_id = ?
+      WHERE r.member_id = ? AND r.user_id = ?
       ORDER BY s.date DESC, s.time DESC
     `;
-    return await queryAll<any>(sql, [memberId]);
+    return await queryAll<any>(sql, [memberId, getDbUserId()]);
   }
 };

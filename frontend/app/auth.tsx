@@ -125,124 +125,126 @@ export default function AuthScreen() {
       </Animated.View>
 
       {/* Auth Modal */}
-      <Modal visible={!!modal} transparent animationType="slide" onRequestClose={closeModal}>
-        <KeyboardAvoidingView
-          style={styles.modalOverlay}
-          behavior="padding"
-        >
-          <TouchableOpacity
-            style={StyleSheet.absoluteFill}
-            activeOpacity={1}
-            onPress={closeModal}
-          />
-
-          <Animated.View
-            entering={SlideInUp.duration(350).springify()}
-            style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}
+      {modal && (
+        <Modal visible transparent animationType="slide" onRequestClose={closeModal}>
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior="padding"
           >
-            {/* Drag handle */}
-            <View style={styles.handle} />
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={closeModal}
+            />
 
-            {/* Header */}
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={closeModal} style={styles.modalClose} activeOpacity={0.7}>
-                <X size={22} color={theme.colors.textSecondary} strokeWidth={2} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>
-                {modal!.tab === 'signup' ? 'Create Account' : 'Welcome Back'}
-              </Text>
-              <View style={styles.modalClose} />
-            </View>
+            <Animated.View
+              entering={SlideInUp.duration(350).springify()}
+              style={[styles.modalSheet, { paddingBottom: insets.bottom + 16 }]}
+            >
+              {/* Drag handle */}
+              <View style={styles.handle} />
 
-            {/* Tab switcher */}
-            <View style={styles.tabRow}>
-              {(['signin', 'signup'] as FormTab[]).map(tab => (
+              {/* Header */}
+              <View style={styles.modalHeader}>
+                <TouchableOpacity onPress={closeModal} style={styles.modalClose} activeOpacity={0.7}>
+                  <X size={22} color={theme.colors.textSecondary} strokeWidth={2} />
+                </TouchableOpacity>
+                <Text style={styles.modalTitle}>
+                  {modal.tab === 'signup' ? 'Create Account' : 'Welcome Back'}
+                </Text>
+                <View style={styles.modalClose} />
+              </View>
+
+              {/* Tab switcher */}
+              <View style={styles.tabRow}>
+                {(['signin', 'signup'] as FormTab[]).map(tab => (
+                  <TouchableOpacity
+                    key={tab}
+                    style={[styles.tabBtn, modal.tab === tab && styles.tabBtnActive]}
+                    onPress={() => switchTab(tab)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.tabBtnText, modal.tab === tab && styles.tabBtnTextActive]}>
+                      {tab === 'signin' ? 'Sign In' : 'Sign Up'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Form */}
+              <ScrollView
+                ref={scrollRef}
+                contentContainerStyle={styles.form}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+              >
+                <Text style={styles.label}>Email</Text>
+                <Pressable onPress={() => emailRef.current?.focus()}>
+                  <TextInput
+                    ref={emailRef}
+                    style={inputClass('email')}
+                    placeholder="you@example.com"
+                    placeholderTextColor={theme.colors.textPlaceholder}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    onFocus={() => { setFocused('email'); scrollToBottom(); }}
+                    onBlur={() => setFocused(null)}
+                  />
+                </Pressable>
+
+                <Text style={styles.label}>Password</Text>
+                <Pressable onPress={() => passwordRef.current?.focus()}>
+                  <TextInput
+                    ref={passwordRef}
+                    style={inputClass('password')}
+                    placeholder="Min. 6 characters"
+                    placeholderTextColor={theme.colors.textPlaceholder}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    onFocus={() => { setFocused('password'); scrollToBottom(); }}
+                    onBlur={() => setFocused(null)}
+                  />
+                </Pressable>
+
+                {modal.tab === 'signup' && (
+                  <>
+                    <Text style={styles.label}>Confirm Password</Text>
+                    <Pressable onPress={() => confirmRef.current?.focus()}>
+                      <TextInput
+                        ref={confirmRef}
+                        style={inputClass('confirm')}
+                        placeholder="Re-enter password"
+                        placeholderTextColor={theme.colors.textPlaceholder}
+                        value={confirm}
+                        onChangeText={setConfirm}
+                        secureTextEntry
+                        onFocus={() => { setFocused('confirm'); scrollToBottom(); }}
+                        onBlur={() => setFocused(null)}
+                      />
+                    </Pressable>
+                  </>
+                )}
+
                 <TouchableOpacity
-                  key={tab}
-                  style={[styles.tabBtn, modal!.tab === tab && styles.tabBtnActive]}
-                  onPress={() => switchTab(tab)}
-                  activeOpacity={0.7}
+                  style={[styles.submitBtn, loading && { opacity: 0.7 }]}
+                  onPress={handleSubmit}
+                  disabled={loading}
+                  activeOpacity={0.85}
                 >
-                  <Text style={[styles.tabBtnText, modal!.tab === tab && styles.tabBtnTextActive]}>
-                    {tab === 'signin' ? 'Sign In' : 'Sign Up'}
+                  <Text style={styles.submitBtnText}>
+                    {modal.tab === 'signup' ? 'Create Account' : 'Sign In'}
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* Form */}
-            <ScrollView
-              ref={scrollRef}
-              contentContainerStyle={styles.form}
-              keyboardShouldPersistTaps="handled"
-              showsVerticalScrollIndicator={false}
-              bounces={false}
-            >
-              <Text style={styles.label}>Email</Text>
-              <Pressable onPress={() => emailRef.current?.focus()}>
-                <TextInput
-                  ref={emailRef}
-                  style={inputClass('email')}
-                  placeholder="you@example.com"
-                  placeholderTextColor={theme.colors.textPlaceholder}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  onFocus={() => { setFocused('email'); scrollToBottom(); }}
-                  onBlur={() => setFocused(null)}
-                />
-              </Pressable>
-
-              <Text style={styles.label}>Password</Text>
-              <Pressable onPress={() => passwordRef.current?.focus()}>
-                <TextInput
-                  ref={passwordRef}
-                  style={inputClass('password')}
-                  placeholder="Min. 6 characters"
-                  placeholderTextColor={theme.colors.textPlaceholder}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  onFocus={() => { setFocused('password'); scrollToBottom(); }}
-                  onBlur={() => setFocused(null)}
-                />
-              </Pressable>
-
-              {modal!.tab === 'signup' && (
-                <>
-                  <Text style={styles.label}>Confirm Password</Text>
-                  <Pressable onPress={() => confirmRef.current?.focus()}>
-                    <TextInput
-                      ref={confirmRef}
-                      style={inputClass('confirm')}
-                      placeholder="Re-enter password"
-                      placeholderTextColor={theme.colors.textPlaceholder}
-                      value={confirm}
-                      onChangeText={setConfirm}
-                      secureTextEntry
-                      onFocus={() => { setFocused('confirm'); scrollToBottom(); }}
-                      onBlur={() => setFocused(null)}
-                    />
-                  </Pressable>
-                </>
-              )}
-
-              <TouchableOpacity
-                style={[styles.submitBtn, loading && { opacity: 0.7 }]}
-                onPress={handleSubmit}
-                disabled={loading}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.submitBtnText}>
-                  {modal!.tab === 'signup' ? 'Create Account' : 'Sign In'}
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </Modal>
+              </ScrollView>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </Modal>
+      )}
     </View>
   );
 }

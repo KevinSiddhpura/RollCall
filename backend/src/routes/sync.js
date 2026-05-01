@@ -56,7 +56,7 @@ router.post('/push', authMiddleware, async (req, res) => {
 router.get('/pull', authMiddleware, async (req, res) => {
   try {
     const userId = req.userId;
-    const select = { user_id: 0, __v: 0 };
+    const select = { __v: 0 };
     const [groups, fieldDefs, members, sessions, records] = await Promise.all([
       Group.find({ user_id: userId }, select).lean(),
       FieldDef.find({ user_id: userId }, select).lean(),
