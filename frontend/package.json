@@ -1,7 +1,7 @@
 {
   "name": "rollcall",
   "main": "expo-router/entry",
-  "version": "2.1.0",
+  "version": "1.0.0",
   "scripts": {
     "start": "node ./node_modules/expo/bin/cli start",
     "reset-project": "node ./scripts/reset-project.js",
