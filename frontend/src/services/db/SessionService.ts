@@ -86,12 +86,12 @@ export const SessionService = {
     const userId = getDbUserId();
     if (sessionData.date) {
       await execute(
-        'UPDATE sessions SET date = ?, notes = ? WHERE id = ? AND user_id = ?',
-        [sessionData.date, sessionData.notes || '', sessionId, userId]
+        'UPDATE sessions SET date = ?, notes = ? WHERE id = ?',
+        [sessionData.date, sessionData.notes || '', sessionId]
       );
     }
 
-    await execute('DELETE FROM records WHERE session_id = ? AND user_id = ?', [sessionId, userId]);
+    await execute('DELETE FROM records WHERE session_id = ?', [sessionId]);
     for (const r of records) {
       await execute(
         'INSERT INTO records (id, session_id, member_id, status, reason, user_id) VALUES (?, ?, ?, ?, ?, ?)',
