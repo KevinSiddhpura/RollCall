@@ -53,7 +53,7 @@ export default function PinModal({
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.overlay}>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior="padding"
           style={styles.container}
         >
           <View style={[styles.sheet, { backgroundColor: theme.colors.surface }]}>

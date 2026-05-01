@@ -68,7 +68,7 @@ export default function AddMemberScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}>
       <ScreenHeader title={isEdit ? 'Edit Member' : 'Add Member'} subtitle={isEdit ? 'Update member details' : 'Enroll a new member in the group'} />
 
       <ScrollView

@@ -268,7 +268,7 @@ export default function GroupDetailScreen() {
 
       <Modal visible={editModalVisible} transparent animationType="slide">
         <TouchableOpacity style={styles.modalBg} activeOpacity={1} onPress={() => setEditModalVisible(false)}>
-          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ justifyContent: 'flex-end', flex: 1 }}>
+          <KeyboardAvoidingView behavior="padding" style={{ justifyContent: 'flex-end', flex: 1 }}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
               <Text style={styles.modalTitle}>Edit Group Name</Text>

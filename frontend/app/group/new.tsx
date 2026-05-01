@@ -50,7 +50,7 @@ export default function NewGroupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}>
+    <KeyboardAvoidingView style={styles.root} behavior="padding" keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}>
       <ScreenHeader title={title} subtitle="Set up a group for attendance" />
 
       <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: Math.max(insets.bottom, 32) }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">

@@ -416,7 +416,7 @@ export default function SettingsScreen() {
       )}
 
       <Modal visible={upgradeModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <TouchableOpacity style={styles.modalBgEnd} activeOpacity={1} onPress={() => setUpgradeModal(false)}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />
@@ -433,7 +433,7 @@ export default function SettingsScreen() {
       </Modal>
 
       <Modal visible={changePwModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <TouchableOpacity style={styles.modalBgEnd} activeOpacity={1} onPress={() => setChangePwModal(false)}>
             <View style={styles.modalSheet}>
               <View style={styles.modalHandle} />

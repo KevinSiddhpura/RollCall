@@ -60,8 +60,12 @@ async function tryBackendRegister(email: string, password: string): Promise<{ to
     const res = await axios.post(`${BACKEND_URL}/auth/register`, { email, password }, { timeout: 6000 });
     return { token: res.data.token, userId: String(res.data.userId) };
   } catch (err: any) {
-    if (err.response?.status === 409) throw new Error('Email already registered.');
-    return null; // network unreachable — allow offline fallback
+    if (err.response) {
+      if (err.response.status === 409) throw new Error('Email already registered.');
+      const serverMsg = err.response.data?.error || err.response.data?.message;
+      throw new Error(serverMsg || `Server error (${err.response.status}). Please try again.`);
+    }
+    return null; // network unreachable — no response at all
   }
 }
 
@@ -118,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const backendResult = await tryBackendRegister(trimmedEmail, password);
     if (!backendResult) {
-      throw new Error('No internet connection. Please connect to the internet to create an account.');
+      throw new Error('Cannot reach server. Please check your internet connection and try again.');
     }
 
     const session: StoredSession = {
