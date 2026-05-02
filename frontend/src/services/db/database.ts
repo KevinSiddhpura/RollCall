@@ -69,7 +69,14 @@ export async function initDatabase() {
       FOREIGN KEY (member_id) REFERENCES members (id) ON DELETE CASCADE
     );
   `);
-}
+
+    // Clean up duplicate records (legacy bug: edits could leave stale rows)
+    await db.execAsync(`
+      DELETE FROM records WHERE rowid NOT IN (
+        SELECT MIN(rowid) FROM records GROUP BY session_id, member_id
+      );
+    `);
+  }
 
 /** Execute a query and return rows as an array of T */
 export async function queryAll<T>(sql: string, params: any[] = []): Promise<T[]> {
