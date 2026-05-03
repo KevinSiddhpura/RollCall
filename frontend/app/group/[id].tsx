@@ -30,6 +30,14 @@ import { format, parseISO } from 'date-fns';
 import { fetchGroupExportData, exportGroupCSV, exportGroupPDF } from '../../src/utils/exportHelpers';
 
 type Tab = 'roster' | 'sessions';
+type PctFilter = 'all' | 'high' | 'mid' | 'low' | 'none';
+const PCT_FILTERS: { key: PctFilter; label: string; color: string }[] = [
+  { key: 'all',  label: 'All',     color: theme.colors.primary },
+  { key: 'high', label: '≥ 75%',   color: theme.colors.success },
+  { key: 'mid',  label: '50–74%',  color: theme.colors.warning },
+  { key: 'low',  label: '< 50%',   color: theme.colors.danger },
+  { key: 'none', label: 'No Data', color: theme.colors.textMuted },
+];
 function formatDate(d: string) { try { return format(parseISO(d), 'EEE, MMM d, yyyy'); } catch { return d; } }
 
 export default function GroupDetailScreen() {
@@ -42,9 +50,13 @@ export default function GroupDetailScreen() {
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [bulkExporting, setBulkExporting] = useState<'csv' | 'pdf' | null>(null);
   const [exportPrompt, setExportPrompt] = useState<{ def: string; cb: (n: string) => void } | null>(null);
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [sortDir, setSortDir] = useState<0 | 1 | 2 | 3>(0); // 0=Name↑ 1=Name↓ 2=ID↑ 3=ID↓
+  const sortLabel = ['Name A–Z', 'Name Z–A', 'ID A–Z', 'ID Z–A'][sortDir];
+  const sortField = sortDir >= 2 ? 'id' : 'name';
+  const sortAsc = sortDir === 0 || sortDir === 2;
   const [showSearch, setShowSearch] = useState(false);
   const [rosterSearch, setRosterSearch] = useState('');
+  const [pctFilter, setPctFilter] = useState<PctFilter>('all');
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
   const [successLabel, setSuccessLabel] = useState<string | null>(null);
   const isSelecting = selectedMemberIds.size > 0;
@@ -73,17 +85,43 @@ export default function GroupDetailScreen() {
   const sortedMembers = (() => {
     const uniqueField = fields.find(f => f.is_unique);
     const arr = [...members];
-    if (uniqueField) {
-      const fid = uniqueField.id;
-      arr.sort((a, b) => { const va = a.field_values[fid] ?? ''; const vb = b.field_values[fid] ?? ''; return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va); });
-    }
+    const fid = uniqueField?.id;
+    arr.sort((a, b) => {
+      let va: string, vb: string;
+      if (sortField === 'name') {
+        va = getMemberDisplayName(fields, a);
+        vb = getMemberDisplayName(fields, b);
+      } else {
+        va = fid ? (a.field_values[fid] ?? '') : (a.id ?? '');
+        vb = fid ? (b.field_values[fid] ?? '') : (b.id ?? '');
+      }
+      const cmp = va.localeCompare(vb);
+      return sortAsc ? cmp : -cmp;
+    });
     return arr;
   })();
 
-  const filteredMembers = rosterSearch.trim() === '' ? sortedMembers : sortedMembers.filter(m => {
-    const s = rosterSearch.toLowerCase();
-    return getMemberDisplayName(fields, m).toLowerCase().includes(s) || getMemberUniqueValue(fields, m).toLowerCase().includes(s);
-  });
+  const filteredMembers = (() => {
+    let arr = sortedMembers;
+    // Text search
+    const q = rosterSearch.trim().toLowerCase();
+    if (q) {
+      arr = arr.filter(m => getMemberDisplayName(fields, m).toLowerCase().includes(q) || getMemberUniqueValue(fields, m).toLowerCase().includes(q));
+    }
+    // Attendance % filter
+    if (pctFilter !== 'all') {
+      arr = arr.filter(m => {
+        const p = memberPcts.get(m.id);
+        if (p === undefined || p === null) return pctFilter === 'none';
+        if (pctFilter === 'none') return false;
+        if (pctFilter === 'high') return p >= 75;
+        if (pctFilter === 'mid') return p >= 50 && p < 75;
+        if (pctFilter === 'low') return p < 50;
+        return true;
+      });
+    }
+    return arr;
+  })();
 
   const sortedSessions = [...sessions].sort((a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time));
 
@@ -181,7 +219,7 @@ export default function GroupDetailScreen() {
               <View style={styles.sortBar}>
                 <Text style={styles.sortCount}>{filteredMembers.length} Members</Text>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
-                  <TouchableOpacity style={styles.sortBtn} onPress={() => setSortDir(d => d === 'asc' ? 'desc' : 'asc')}><Text style={styles.sortBtnText}>{sortDir === 'asc' ? 'A-Z' : 'Z-A'}</Text></TouchableOpacity>
+                  <TouchableOpacity style={styles.sortBtn} onPress={() => setSortDir(d => ((d + 1) % 4) as typeof d)}><Text style={styles.sortBtnText}>{sortLabel}</Text></TouchableOpacity>
                   <TouchableOpacity style={[styles.sortBtn, showSearch && { backgroundColor: theme.colors.primary }]} onPress={() => setShowSearch(!showSearch)}><Search size={13} color={showSearch ? '#fff' : theme.colors.primary} /></TouchableOpacity>
                 </View>
               </View>
@@ -190,6 +228,25 @@ export default function GroupDetailScreen() {
                   <Search size={14} color={theme.colors.textMuted} />
                   <TextInput style={styles.searchInput} placeholder="Search by name or ID…" value={rosterSearch} onChangeText={setRosterSearch} autoFocus />
                   {rosterSearch !== '' && <TouchableOpacity onPress={() => setRosterSearch('')}><X size={14} color={theme.colors.textMuted} /></TouchableOpacity>}
+                </View>
+              )}
+
+              {/* Attendance % filter chips */}
+              {totalSessions > 0 && (
+                <View style={styles.pctFilterRow}>
+                  {PCT_FILTERS.map(f => {
+                    const active = pctFilter === f.key;
+                    return (
+                      <TouchableOpacity
+                        key={f.key}
+                        style={[styles.pctChip, active && { backgroundColor: f.color + '18', borderColor: f.color }]}
+                        onPress={() => setPctFilter(f.key)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.pctChipText, active && { color: f.color }]}>{f.label}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               )}
               <FlatList data={filteredMembers} keyExtractor={item => item.id}
@@ -320,6 +377,13 @@ const styles = StyleSheet.create({
   sortBtnText: { fontSize: 12, fontWeight: '700', color: theme.colors.primary },
   searchBar: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: theme.spacing.md, paddingVertical: 8, backgroundColor: theme.colors.surfaceAlt },
   searchInput: { flex: 1, fontSize: 14, color: theme.colors.text, paddingVertical: 0 },
+  pctFilterRow: { flexDirection: 'row', gap: 5, paddingHorizontal: theme.spacing.md, paddingVertical: 8, flexWrap: 'wrap' },
+  pctChip: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.borderRadius.full,
+    borderWidth: 1.5, borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  pctChipText: { fontSize: 11, fontWeight: '700', color: theme.colors.textMuted },
 
   list: { paddingHorizontal: theme.spacing.md, paddingTop: theme.spacing.sm, paddingBottom: 160 },
 
