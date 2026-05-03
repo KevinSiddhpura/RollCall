@@ -1273,12 +1273,7 @@
   resolved "https://registry.npmjs.org/@expo/sudo-prompt/-/sudo-prompt-9.3.2.tgz"
   integrity sha512-HHQigo3rQWKMDzYDLkubN5WQOYXJJE2eNqIQC2axC2iO3mHdwnIR7FgZVvHWtBwAdzBgAP0ECp8KqS8TiMKvgw==
 
-"@expo/vector-icons@^15.0.3":
-  version "15.1.1"
-  resolved "https://registry.npmjs.org/@expo/vector-icons/-/vector-icons-15.1.1.tgz"
-  integrity sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw==
-
-"@expo/vector-icons@^15.1.1":
+"@expo/vector-icons@^15.0.3", "@expo/vector-icons@^15.1.1":
   version "15.1.1"
   resolved "https://registry.yarnpkg.com/@expo/vector-icons/-/vector-icons-15.1.1.tgz#4b1d2c60493c0b0536972f0a5babd5f5c85b48f4"
   integrity sha512-Iu2VkcoI5vygbtYngm7jb4ifxElNVXQYdDrYkT7UCEIiKLeWnQY0wf2ZhHZ+Wro6Sc5TaumpKUOqDRpLi5rkvw==
@@ -5084,9 +5079,9 @@ lru-cache@^5.1.1:
     yallist "^3.0.2"
 
 lucide-react-native@^1.8.0:
-  version "1.11.0"
-  resolved "https://registry.npmjs.org/lucide-react-native/-/lucide-react-native-1.11.0.tgz"
-  integrity sha512-/dEt+/noOpsvgH1dbMHHSv+f8+npB1BJSKCqK9v9yvHbssN3OJJJXrih6N1prJGG3vj0e1zKiVLtet+OKYmiXg==
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/lucide-react-native/-/lucide-react-native-1.14.0.tgz#82a89db0d37b906f519331c3a18d277f1e9c37d0"
+  integrity sha512-FkOjd4JHIB8SplakHQjeo4RR/5peXtl+PbL+TghQqWzcQ+AKbJ/PFl5xEnerLtSQ4EIq6B9uXblY7QSyKg05WQ==
 
 makeerror@1.0.12:
   version "1.0.12"

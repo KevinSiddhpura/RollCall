@@ -56,7 +56,7 @@ function simpleHash(str: string): string {
 
 async function tryBackendRegister(email: string, password: string): Promise<{ token: string; userId: string } | null> {
   try {
-    const res = await axios.post(`${BACKEND_URL}/auth/register`, { email, password }, { timeout: 6000 });
+    const res = await axios.post(`${BACKEND_URL}/auth/register`, { email, password }, { timeout: 15000 });
     return { token: res.data.token, userId: String(res.data.userId) };
   } catch (err: any) {
     if (err.response) {
@@ -64,13 +64,15 @@ async function tryBackendRegister(email: string, password: string): Promise<{ to
       const serverMsg = err.response.data?.error || err.response.data?.message;
       throw new Error(serverMsg || `Server error (${err.response.status}). Please try again.`);
     }
-    return null; // network unreachable — no response at all
+    // network unreachable — log details for debugging
+    console.error('Backend unreachable:', err.code, err.message, 'URL:', BACKEND_URL);
+    return null;
   }
 }
 
 async function tryBackendLogin(email: string, password: string): Promise<{ token: string; userId: string } | null> {
   try {
-    const res = await axios.post(`${BACKEND_URL}/auth/login`, { email, password }, { timeout: 6000 });
+    const res = await axios.post(`${BACKEND_URL}/auth/login`, { email, password }, { timeout: 15000 });
     return { token: res.data.token, userId: String(res.data.userId) };
   } catch {
     return null;

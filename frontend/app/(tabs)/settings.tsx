@@ -178,6 +178,7 @@ export default function SettingsScreen() {
     } catch (e: any) { Alert.alert('Error', e.message ?? 'Failed.'); }
     finally { setBulkExporting(null); }
   };
+
   const handleUpgrade = async () => {
     if (upgradeTab === 'signup') {
       if (!email.trim() || !password) { Alert.alert('Required', 'Email and password required.'); return; }
@@ -455,6 +456,7 @@ export default function SettingsScreen() {
       <ExportModal visible={!!exportPrompt} defaultName={exportPrompt?.def ?? ''} onExport={(n) => { exportPrompt?.cb(n); setExportPrompt(null); }} onClose={() => setExportPrompt(null)} />
       <SyncModal visible={!!syncModal} progress={syncModal} onClose={() => { if (syncModal?.phase === 'complete' || syncModal?.phase === 'error') setSyncModal(null); }} />
       <SuccessToast visible={!!successLabel} message={successLabel ?? ''} onHide={() => setSuccessLabel(null)} />
+
       <Modal visible={!!deletingLabel} transparent animationType="fade">
         <View style={styles.modalBg}><View style={styles.deletingCard}><ActivityIndicator color={theme.colors.primary} /><Text style={{ fontWeight: '600', color: theme.colors.text }}>{deletingLabel}</Text></View></View>
       </Modal>
@@ -515,6 +517,7 @@ const styles = StyleSheet.create({
   cpForm: { marginTop: 4, gap: 8 },
   cpError: { color: theme.colors.danger, fontSize: 12 },
   cpLabel: { fontSize: 12, fontWeight: '600', color: theme.colors.textSecondary, marginBottom: 4 },
+  hint: { fontSize: 11, color: theme.colors.textMuted, lineHeight: 16, marginBottom: 4 },
   input: { borderWidth: 1.5, borderColor: theme.colors.border, borderRadius: theme.borderRadius.md, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: theme.colors.text, backgroundColor: theme.colors.surfaceAlt },
   saveBtn: { backgroundColor: theme.colors.primary, paddingVertical: 14, borderRadius: theme.borderRadius.lg, alignItems: 'center', ...theme.shadows.primary },
   saveBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },

@@ -105,6 +105,15 @@ export const SessionService = {
   },
 
   async getRecordsByMember(memberId: string): Promise<any[]> {
+    // Clean duplicate records for this member before fetching — keeps only the latest row per session
+    await execute(
+      `DELETE FROM records WHERE rowid NOT IN (
+        SELECT MAX(rowid) FROM records
+        WHERE member_id = ?
+        GROUP BY session_id, member_id
+      ) AND member_id = ?`,
+      [memberId, memberId]
+    );
     const sql = `
       SELECT r.*, s.date, s.time, s.notes as sessionNotes
       FROM records r

@@ -70,10 +70,10 @@ export async function initDatabase() {
     );
   `);
 
-    // Clean up duplicate records (legacy bug: edits could leave stale rows)
+    // Clean up duplicate records (keeps only the most recent per session+member)
     await db.execAsync(`
       DELETE FROM records WHERE rowid NOT IN (
-        SELECT MIN(rowid) FROM records GROUP BY session_id, member_id
+        SELECT MAX(rowid) FROM records GROUP BY session_id, member_id
       );
     `);
   }

@@ -195,11 +195,11 @@ export default function TakeAttendanceScreen() {
 
         <View style={styles.quickActions}>
           <TouchableOpacity style={styles.quickBtn} onPress={() => markAll('present')} activeOpacity={0.7}>
-            <CheckCheck size={14} color={theme.colors.presentDark || theme.colors.present} />
+            <CheckCheck size={14} color={theme.colors.present} />
             <Text style={styles.quickBtnText}>All Present</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.quickBtn} onPress={() => markAll('absent')} activeOpacity={0.7}>
-            <XCircle size={14} color={theme.colors.absentDark || theme.colors.absent} />
+            <XCircle size={14} color={theme.colors.absent} />
             <Text style={styles.quickBtnText}>All Absent</Text>
           </TouchableOpacity>
         </View>
